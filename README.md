@@ -19,7 +19,7 @@ $ cd ../hearthstone
 Setup a virtual environment (optional)
 ```
 $ python -m venv env
-$ env/Script/activate
+$ env\Script\activate
 ```
 
 Install Beautiful soup and Selenium
