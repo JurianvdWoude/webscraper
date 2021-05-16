@@ -36,7 +36,7 @@ class HSWebSearch():
 
     csv_labels = ['Index', 'CardName', 'Rating', 
       'InPrcntOfDecks', 'AvgCopies', 'DeckWinratePrcnt', 
-      'TimesPlayed', 'Set', 'CardType', 'MinionType' 'Class', 
+      'TimesPlayed', 'Set', 'CardType', 'MinionType', 'Class', 
       'Rarity', 'Cost', 'Attack', 'Health', 'Durability'] + abilitylist
 
 
@@ -45,7 +45,7 @@ class HSWebSearch():
     go_to_next_page = True
 
     self.goto_page(driver, self.hs_ratings_searchpage, 'strong')
-
+    # TODO: remove the page/61/ from the above link
     
 
     while go_to_next_page:
@@ -68,7 +68,13 @@ class HSWebSearch():
 
         stats_page = self.get_page(driver)
         statistics = self.get_cardstatistics(stats_page, cardname)
-        self.goto_page(driver, self.hs_abilities_searchpage + cardname, 'tbody')
+        if cardname == 'Windfury':
+          self.goto_page(driver, self.hs_abilities_searchpage + 'Windfury (card)', 'tbody')
+        else:
+          # self.goto_page(driver, self.hs_abilities_searchpage + cardname.replace(' The ', ' the '), 'tbody')
+          self.goto_page(driver, self.hs_abilities_searchpage, 'input')
+          self.search_for_card(driver, cardname.replace(' The ', ' the '), 'tbody')
+        
         abilities_page = self.get_page(driver)
         abilities = self.get_abilities(abilities_page, abilitylist)
         datarow = [str(index)] + [cardname] + [rating] + statistics + abilities
@@ -114,8 +120,6 @@ class HSWebSearch():
     card_infobox = card.find('div', attrs={'class': 'stdinfobox'})
     card_container = card_infobox.find_all('tr')
 
-
-
     card_set = self.find_card_attr(card_container, 'a', 'Set:', '')
     card_type = self.find_card_attr(card_container, 'a', 'Type:', '')
     card_miniontype = self.find_card_attr(card_container, 'a', 'Minion type:', '')
@@ -144,7 +148,7 @@ class HSWebSearch():
     return cardvalues
 
   def find_card_attr(self, card_container: ResultSet, tag, search_query, default_value):
-    return next((x.find(tag).get_text() for x in card_container if x.find('b') != None and x.find('b').get_text() == search_query), default_value)
+    return next((x.find(tag).get_text() for x in card_container if (x.find('b') != None and x.find('b').get_text() == search_query)), default_value)
   
   def goto_page(self, driver: WebDriver, website_name, waiting_for_tag):
     driver.get(website_name)
@@ -156,6 +160,21 @@ class HSWebSearch():
       print('Error:{}'.format(e))
       driver.execute_script('window.stop()')
     return
+  
+  def search_for_card(self, driver: WebDriver, searchinput, waiting_for_tag):
+    elem = driver.find_element_by_id('searchInput')
+    # elem.click()
+    elem.send_keys(searchinput)
+    elem.send_keys(Keys.RETURN)
+    try:
+      WebDriverWait(driver, 50).until(
+        EC.presence_of_element_located((By.TAG_NAME, waiting_for_tag))
+      )
+    except Exception as e:
+      print('Error:{}'.format(e))
+      driver.execute_script('window.stop()')
+    return
+
 
   def get_page(self, driver):
     return BeautifulSoup(driver.page_source, 'html.parser')
